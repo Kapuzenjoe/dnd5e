@@ -1061,7 +1061,7 @@ export default class Item5e extends SystemDocumentMixin(Item) {
    * Duplicate an advancement, resetting its value to default and giving it a new ID.
    * @param {string} id                             ID of the advancement to duplicate.
    * @param {object} [options]
-   * @param {boolean} [options.showConfig=true]     Should the new advancement's configuration application be shown?
+   * @param {boolean} [options.renderSheet=true]    Should the sheet be rendered after creation?
    * @param {boolean} [options.source=false]        Should a source-only update be performed?
    * @returns {Promise<AdvancementConfig>|Item5e}   Promise for advancement config for duplicate advancement if source
    *                                                is `false`, or item with newly duplicated advancement.
