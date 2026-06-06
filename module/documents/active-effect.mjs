@@ -578,16 +578,31 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
   /** @inheritDoc */
   async _onCreate(data, options, userId) {
     super._onCreate(data, options, userId);
-    if ( userId === game.userId ) {       
-      if ( this.active && (this.parent instanceof Actor) ) {
-        await this.createRiderConditions();
-        if ( this._shouldPromptConcentrationEnd() ) await this.parent.promptConcentrationEnd();
-      }
+    if ( userId === game.userId ) {
+      if ( this.active && (this.parent instanceof Actor) ) await this.createRiderConditions();
       if ( this.isAppliedEnchantment ) await this.createRiderEnchantments(options);
     }
     if ( options.chatMessageOrigin ) {
       document.body.querySelectorAll(`[data-message-id="${options.chatMessageOrigin}"] enchantment-application`)
         .forEach(element => element.buildItemList());
+    }
+  }
+
+  /* -------------------------------------------- */
+
+  /** @inheritDoc */
+  static async _onCreateOperation(documents, operation, user) {
+    await super._onCreateOperation(documents, operation, user);
+    if ( user.id !== game.userId ) return;
+    // Prompt to end concentration at most once per actor, even when several incapacitating effects are created in the
+    // same operation.
+    const prompted = new Set();
+    for ( const effect of documents ) {
+      if ( !effect._shouldPromptConcentrationEnd() ) continue;
+      const actor = effect.parent;
+      if ( prompted.has(actor) ) continue;
+      prompted.add(actor);
+      await actor.promptConcentrationEnd();
     }
   }
 
@@ -706,7 +721,7 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
    */
   _shouldPromptConcentrationEnd() {
     if ( !this.active || !(this.parent instanceof Actor) ) return false;
-    if ( game.settings.get("dnd5e", "disableConcentration") || !this.parent.concentration.effects.size ) return false;
+    if ( dnd5e.settings.disableConcentration || !this.parent.concentration.effects.size ) return false;
 
     return this.statuses.has("dead") || this.statuses.has("incapacitated");
   }

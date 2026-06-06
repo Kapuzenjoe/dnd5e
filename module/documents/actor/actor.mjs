@@ -1095,7 +1095,7 @@ export default class Actor5e extends SystemDocumentMixin(Actor) {
         "systems/dnd5e/templates/chat/roll-request-card.hbs",
         {
           buttons: [{
-            dataset: { ...dataset, type: "concentration", visbility: "all" },
+            dataset: { ...dataset, type: "concentration", visibility: "all" },
             buttonLabel: createRollLabel({ ...dataset, ...config }),
             hiddenLabel: createRollLabel({ ...dataset, ...config, hideDC: true })
           }]
@@ -1117,7 +1117,7 @@ export default class Actor5e extends SystemDocumentMixin(Actor) {
     if ( !isConcentrating ) return null;
 
     const label = `<i class="fa-solid fa-ban" inert></i>${
-      game.i18n.localize("DND5E.ConcentrationBreak")
+      _loc("DND5E.ConcentrationBreak")
     }`;
 
     return ChatMessage.implementation.create({
@@ -1135,7 +1135,6 @@ export default class Actor5e extends SystemDocumentMixin(Actor) {
       speaker: ChatMessage.implementation.getSpeaker({ actor: this })
     });
   }
- 
 
   /* -------------------------------------------- */
 
@@ -1706,6 +1705,7 @@ export default class Actor5e extends SystemDocumentMixin(Actor) {
     const options = {
       advantage: conc.roll.mode === CONFIG.Dice.D20Roll.ADV_MODE.ADVANTAGE,
       disadvantage: conc.roll.mode === CONFIG.Dice.D20Roll.ADV_MODE.DISADVANTAGE,
+      isConcentration: true,
       maximum: conc.roll.max,
       minimum: conc.roll.min
     };
