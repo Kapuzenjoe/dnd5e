@@ -5,8 +5,8 @@ import { measureTokenDistance } from "../utils.mjs";
  */
 export default class Token5e extends foundry.canvas.placeables.Token {
 
-  /** @type {HTMLElement|null} */
-  #distanceLabel = null;
+  /** @type {HTMLDivElement|null} */
+  #distanceLabelContainer = null;
 
   /**
    * Update the token ring when this token is targeted.
@@ -304,12 +304,16 @@ export default class Token5e extends foundry.canvas.placeables.Token {
     const label = foundry.utils.parseHTML(html);
     const center = this.center;
     label.style.setProperty("--position-x", `${center.x}px`);
-    label.style.setProperty("--position-y", `${center.y - (this.h / 2) - (16 * uiScale)}px`);
+    label.style.setProperty("--position-y", `${center.y - (this.h * 0.5) - (16 * uiScale)}px`);
     label.style.setProperty("--ui-scale", uiScale);
     label.style.setProperty("--transformX", "-50%");
     label.style.setProperty("--transformY", "-100%");
-    measurementHud.appendChild(label);
-    this.#distanceLabel = label;
+    const container = document.createElement("div");
+    container.classList.add("ruler-labels", "dnd5e-distance-labels");
+    container.id = `dnd5e-distance-${this.document.id}`;
+    container.appendChild(label);
+    measurementHud.appendChild(container);
+    this.#distanceLabelContainer = container;
   }
 
   /* -------------------------------------------- */
@@ -318,7 +322,7 @@ export default class Token5e extends foundry.canvas.placeables.Token {
    * Remove any distance label associated with this token.
    */
   #removeDistanceLabel() {
-    this.#distanceLabel?.remove();
-    this.#distanceLabel = null;
+    this.#distanceLabelContainer?.remove();
+    this.#distanceLabelContainer = null;
   }
 }
