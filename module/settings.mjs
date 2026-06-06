@@ -375,12 +375,44 @@ export function registerSystemSettings() {
     default: false
   });
 
+  game.settings.register("dnd5e", "encounterPlacementBehavior", {
+    name: "SETTINGS.DND5E.ENCOUNTERS.EncounterPlacementBehavior.Name",
+    hint: "SETTINGS.DND5E.ENCOUNTERS.EncounterPlacementBehavior.Hint",
+    scope: "world",
+    config: false,
+    default: "none",
+    type: String,
+    choices: {
+      none: "SETTINGS.DND5E.ENCOUNTERS.EncounterPlacementBehavior.None",
+      createCombatants: "SETTINGS.DND5E.ENCOUNTERS.EncounterPlacementBehavior.CreateCombatants",
+      rollInitiative: "SETTINGS.DND5E.ENCOUNTERS.EncounterPlacementBehavior.RollInitiative"
+    }
+  });
+
   game.settings.register("dnd5e", "initiativeDexTiebreaker", {
     name: "SETTINGS.DND5E.COMBAT.DexTiebreaker.Name",
     hint: "SETTINGS.DND5E.COMBAT.DexTiebreaker.Hint",
     scope: "world",
     config: false,
     default: false,
+    type: Boolean
+  });
+
+  game.settings.register("dnd5e", "initiativeGroupCombatants", {
+    name: "SETTINGS.DND5E.COMBAT.InitiativeGroupCombatants.Name",
+    hint: "SETTINGS.DND5E.COMBAT.InitiativeGroupCombatants.Hint",
+    scope: "world",
+    config: false,
+    default: true,
+    type: Boolean
+  });
+
+  game.settings.register("dnd5e", "initiativeGroupRoll", {
+    name: "SETTINGS.DND5E.COMBAT.InitiativeGroupRoll.Name",
+    hint: "SETTINGS.DND5E.COMBAT.InitiativeGroupRoll.Hint",
+    scope: "world",
+    config: false,
+    default: true,
     type: Boolean
   });
 

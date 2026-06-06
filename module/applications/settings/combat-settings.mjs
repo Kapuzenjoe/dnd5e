@@ -24,6 +24,9 @@ export default class CombatSettingsConfig extends BaseSettingsConfig {
     npcs: {
       template: "systems/dnd5e/templates/settings/base-config.hbs"
     },
+    encounterPlacement: {
+      template: "systems/dnd5e/templates/settings/base-config.hbs"
+    },
     footer: {
       template: "templates/generic/form-footer.hbs"
     }
@@ -40,7 +43,9 @@ export default class CombatSettingsConfig extends BaseSettingsConfig {
       case "initiative":
         context.fields = [
           this.createSettingField("initiativeDexTiebreaker"),
-          this.createSettingField("initiativeScore")
+          this.createSettingField("initiativeScore"),
+          this.createSettingField("initiativeGroupRoll"),
+          this.createSettingField("initiativeGroupCombatants")
         ];
         context.legend = _loc("DND5E.Initiative");
         break;
@@ -57,6 +62,12 @@ export default class CombatSettingsConfig extends BaseSettingsConfig {
           this.createSettingField("autoRollNPCHP")
         ];
         context.legend = _loc("SETTINGS.DND5E.NPCS.Name");
+        break;
+      case "encounterPlacement":
+        context.fields = [
+          this.createSettingField("encounterPlacementBehavior")
+        ];
+        context.legend = _loc("SETTINGS.DND5E.ENCOUNTERS.Name");
         break;
     }
     return context;

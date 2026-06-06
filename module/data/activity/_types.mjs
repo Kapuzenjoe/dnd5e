@@ -80,9 +80,11 @@
  * @property {object} check
  * @property {string} check.ability          Ability used with the check.
  * @property {Set<string>} check.associated  Skills or tools that can contribute to the check.
+ * @property {string} check.bonus            Bonus added to all checks made through this activity.
  * @property {object} check.dc
  * @property {string} check.dc.calculation   Method or ability used to calculate the difficulty class of the check.
  * @property {string} check.dc.formula       Custom DC formula or flat value.
+ * @property {boolean} check.visible         Should this check be displayed to all players?
  */
 
 /**
@@ -140,9 +142,11 @@
  * @property {SaveEffectApplicationData[]} effects  Linked effects that can be applied.
  * @property {object} save
  * @property {Set<string>} save.ability             Make the saving throw with one of these abilities.
+ * @property {string} save.bonus                    Bonus added to all saves made through this activity.
  * @property {object} save.dc
  * @property {string} save.dc.calculation           Method or ability used to calculate the difficulty class.
  * @property {string} save.dc.formula               Custom DC formula or flat value.
+ * @property {boolean} save.visible                 Should this save be displayed to all players?
  */
 
 /**

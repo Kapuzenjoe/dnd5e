@@ -1119,9 +1119,39 @@ export default class Actor5e extends SystemDocumentMixin(Actor) {
         "systems/dnd5e/templates/chat/roll-request-card.hbs",
         {
           buttons: [{
-            dataset: { ...dataset, type: "concentration", visbility: "all" },
+            dataset: { ...dataset, type: "concentration", visibility: "all" },
             buttonLabel: createRollLabel({ ...dataset, ...config }),
             hiddenLabel: createRollLabel({ ...dataset, ...config, hideDC: true })
+          }]
+        }
+      ),
+      whisper: game.users.filter(user => this.testUserPermission(user, "OWNER")),
+      speaker: ChatMessage.implementation.getSpeaker({ actor: this })
+    });
+  }
+
+  /* -------------------------------------------- */
+
+  /**
+   * Create a chat message for this actor with a prompt to end concentration.
+   * @returns {Promise<ChatMessage5e|null>}  A promise that resolves to the created chat message.
+   */
+  async promptConcentrationEnd() {
+    const isConcentrating = this.concentration.effects.size > 0;
+    if ( !isConcentrating ) return null;
+
+    const label = `<i class="fa-solid fa-ban" inert></i>${
+      _loc("DND5E.ConcentrationBreak")
+    }`;
+
+    return ChatMessage.implementation.create({
+      content: await foundry.applications.handlebars.renderTemplate(
+        "systems/dnd5e/templates/chat/roll-request-card.hbs",
+        {
+          buttons: [{
+            dataset: { action: "endConcentration", actorUuid: this.uuid, visibility: "all" },
+            buttonLabel: label,
+            hiddenLabel: label
           }]
         }
       ),
@@ -1699,6 +1729,7 @@ export default class Actor5e extends SystemDocumentMixin(Actor) {
     const options = {
       advantage: conc.roll.mode === CONFIG.Dice.D20Roll.ADV_MODE.ADVANTAGE,
       disadvantage: conc.roll.mode === CONFIG.Dice.D20Roll.ADV_MODE.DISADVANTAGE,
+      isConcentration: true,
       maximum: conc.roll.max,
       minimum: conc.roll.min
     };
@@ -2807,9 +2838,9 @@ export default class Actor5e extends SystemDocumentMixin(Actor) {
     // Token appearance updates
     const tokenPropsFromSource = ["width", "height", "alpha", "lockRotation", "ring"];
     const tokenTexturePropsFromSource = ["offsetX", "offsetY", "scaleX", "scaleY", "src", "tint"];
-    const tokenPropsFromSelf = [
-      "bar1", "bar2", "displayBars", "displayName", "actorLink", "disposition", "rotation", "elevation", "hidden"
-    ];
+    const tokenPropsFromSelf = ["bar1", "bar2", "displayBars", "displayName", "actorLink", "disposition"];
+    const tokenPropsPreserved = ["rotation", "elevation", "hidden", "level"];
+    const tokenPropsSelfPreserved = [...tokenPropsFromSelf, ...tokenPropsPreserved];
 
     for ( const k of tokenPropsFromSource ) {
       d.prototypeToken[k] = sourceData.prototypeToken[k];
@@ -2817,7 +2848,7 @@ export default class Actor5e extends SystemDocumentMixin(Actor) {
     for ( const k of tokenTexturePropsFromSource ) {
       d.prototypeToken.texture[k] = sourceData.prototypeToken.texture[k];
     }
-    for ( const k of tokenPropsFromSelf ) {
+    for ( const k of tokenPropsSelfPreserved ) {
       d.prototypeToken[k] = o.prototypeToken[k];
     }
 
@@ -3013,7 +3044,7 @@ export default class Actor5e extends SystemDocumentMixin(Actor) {
     if ( this.isToken ) {
       const tokenData = d.prototypeToken;
       delete d.prototypeToken;
-      for ( const k of tokenPropsFromSelf ) {
+      for ( const k of tokenPropsSelfPreserved ) {
         tokenData[k] = this.token[k];
       }
       if ( settings.keep.has("self") ) {
@@ -3080,7 +3111,7 @@ export default class Actor5e extends SystemDocumentMixin(Actor) {
       newTokenData._id = t.id;
       newTokenData.actorId = newActor.id;
       newTokenData.actorLink = true;
-      for ( const k of tokenPropsFromSelf ) {
+      for ( const k of tokenPropsSelfPreserved ) {
         newTokenData[k] = t.document[k];
       }
       if ( settings.keep.has("self") ) {
@@ -3199,12 +3230,13 @@ export default class Actor5e extends SystemDocumentMixin(Actor) {
       const tokenUpdates = tokens.map(t => {
         const update = foundry.utils.deepClone(tokenData);
         update._id = t.id;
-        update.elevation = t.document.elevation;
-        update.hidden = t.document.hidden;
-        update.rotation = t.document.rotation;
         foundry.utils.mergeObject(update, t.document.getFlag("dnd5e", "previousTokenData"));
         delete update.x;
         delete update.y;
+        delete update.elevation;
+        delete update.hidden;
+        delete update.rotation;
+        delete update.level;
         return update;
       });
       await canvas.scene.updateEmbeddedDocuments("Token", tokenUpdates, { diff: false, recursive: false });
