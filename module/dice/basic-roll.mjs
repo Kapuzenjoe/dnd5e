@@ -170,7 +170,7 @@ export default class BasicRoll extends Roll {
    */
   static async buildPost(rolls, config, message) {
     message.data = foundry.utils.expandObject(message.data ?? {});
-    const messageId = config.event?.target.closest("[data-message-id]")?.dataset.messageId;
+    const messageId = config.event?.target?.closest("[data-message-id]")?.dataset.messageId;
     if ( messageId ) foundry.utils.setProperty(message.data, "flags.dnd5e.originatingMessage", messageId);
 
     // Attack & Damage store originatingMessage directly on message.data and do not have a config.event. We retrieve
@@ -271,7 +271,7 @@ export default class BasicRoll extends Roll {
     const msg = new cls(messageData);
 
     // Either create or return the data
-    if ( create ) return cls.create(msg.toObject(), { rollMode });
+    if ( create ) return cls.create(msg.toObject(), { messageMode: rollMode });
     else {
       if ( rollMode ) msg.applyMode(rollMode);
       return msg.toObject();

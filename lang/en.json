@@ -1399,8 +1399,8 @@
         "hint": "Spell components & tags to ignore while casting."
       },
       "spellbook": {
-        "label": "Display in Spellbook",
-        "hint": "Display spell in the Spells tab of the character sheet."
+        "label": "Display in Spells Tab",
+        "hint": "Display spell in the Spells tab of the character sheet. Items must have the Magical property and be attuned if they require attunement."
       },
       "uuid": {
         "label": "Spell to Cast"
@@ -4297,6 +4297,7 @@
 "DND5E.SubclassDuplicateError": "A subclass with the identifier {identifier} already exists on this actor.",
 "DND5E.SubclassMismatchWarn": "{name} subclass has no matching class with identifier '{class}'.",
 "DND5E.SubclassName": "Subclass Name",
+"DND5E.SubclassOf": "{class} Subclass",
 "DND5E.Subtype": "Subtype",
 "DND5E.Summary": "Summary",
 
