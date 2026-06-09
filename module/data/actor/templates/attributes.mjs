@@ -166,7 +166,7 @@ export default class AttributesFields {
 
     // Set stealth disadvantage
     if ( armors[0]?.system.properties.has("stealthDisadvantage") && this.skills ) {
-      AdvantageModeField.setMode(this, "skills.ste.roll.mode", -1);
+      AdvantageModeField.setMode(this, "skills.ste.roll.mode", -1, { source: { label: armors[0].name } });
     }
 
     ac.label = !["custom", "flat"].includes(ac.calc) ? CONFIG.DND5E.armorClasses[ac.calc]?.label : null;
@@ -389,11 +389,16 @@ export default class AttributesFields {
     init.prof = new Proficiency(prof, alert ? 1 : (joat || ra) ? 0.5 : 0, !ra);
 
     // Adjust rolling mode
-    if ( (flags.remarkableAthlete && !isLegacy) || this.parent.hasConditionEffect("initiativeAdvantage") ) {
-      AdvantageModeField.setMode(this, "attributes.init.roll.mode", 1);
+    if ( flags.remarkableAthlete && !isLegacy ) {
+      AdvantageModeField.setMode(this, "attributes.init.roll.mode", 1, { source: { label: _loc("DND5E.FlagsRemarkableAthlete") } });
     }
-    if ( this.parent.hasConditionEffect("initiativeDisadvantage") ) {
-      AdvantageModeField.setMode(this, "attributes.init.roll.mode", -1);
+    const initiativeAdvantage = this.parent.hasConditionEffect("initiativeAdvantage", { label: true });
+    if ( initiativeAdvantage ) {
+      AdvantageModeField.setMode(this, "attributes.init.roll.mode", 1, { source: { label: initiativeAdvantage } });
+    }
+    const initiativeDisadvantage = this.parent.hasConditionEffect("initiativeDisadvantage", { label: true });
+    if ( initiativeDisadvantage ) {
+      AdvantageModeField.setMode(this, "attributes.init.roll.mode", -1, { source: { label: initiativeDisadvantage } });
     }
 
     // Total initiative includes all numeric terms

@@ -271,7 +271,7 @@ export default class CreatureTemplate extends CommonTemplate {
     const isLegacy = game.settings.get("dnd5e", "rulesVersion") === "legacy";
     if ( flags.remarkableAthlete
       && CONFIG.DND5E.characterFlags.remarkableAthlete.skills.includes(skillId) && !isLegacy ) {
-      AdvantageModeField.setMode(this, `skills.${skillId}.roll.mode`, 1);
+      AdvantageModeField.setMode(this, `skills.${skillId}.roll.mode`, 1, { source: { label: _loc("DND5E.FlagsRemarkableAthlete") } });
     }
 
     // Compute passive bonus
