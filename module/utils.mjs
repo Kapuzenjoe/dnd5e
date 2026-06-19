@@ -849,6 +849,8 @@ export function defaultUnits(type) {
 /*  Validators                                  */
 /* -------------------------------------------- */
 
+const IDENTIFIER_REGEX = /^([a-zA-Z0-9_\-]+)$/i;
+
 /**
  * Ensure the provided string contains only the characters allowed in identifiers.
  * @param {string} identifier
@@ -863,11 +865,11 @@ function isValidIdentifier(identifier, { allowType=false }={}) {
     if ( split.length > 2 ) return false;
     identifier = split[1];
   }
-  return /^([a-z0-9_-]+)$/i.test(identifier);
+  return IDENTIFIER_REGEX.test(identifier);
 }
 
 export const validators = {
-  isValidIdentifier: isValidIdentifier
+  IDENTIFIER_REGEX, isValidIdentifier
 };
 
 /* -------------------------------------------- */
@@ -970,8 +972,7 @@ export async function preloadHandlebarsTemplates() {
     "systems/dnd5e/templates/activity/parts/activity-usage-notes.hbs",
 
     // Advancement Partials
-    "systems/dnd5e/templates/advancement/parts/advancement-controls.hbs",
-    "systems/dnd5e/templates/advancement/parts/advancement-spell-config.hbs"
+    "systems/dnd5e/templates/advancement/parts/advancement-controls.hbs"
   ];
 
   const paths = {};
@@ -1357,15 +1358,15 @@ export function getHumanReadableAttributeLabel(attr, { actor, item }={}) {
   else if ( attr === "attributes.spell.dc" ) label = "DND5E.SpellDC";
 
   // Abilities.
-  else if ( attr.startsWith("abilities.") ) {
-    const [, key] = attr.split(".");
+  else if ( attr.startsWith("abilities.") || attr.startsWith("attributes.ac.clamped.") ) {
+    const key = attr.split(".")[attr.startsWith("abilities.") ? 1 : 3];
     label = _loc("DND5E.AbilityScoreL", { ability: CONFIG.DND5E.abilities[key].label });
   }
 
   // Senses
   else if ( attr.startsWith("attributes.senses.ranges.") ) {
     const key = attr.split(".")[3];
-    label = CONFIG.DND5E.senses[key];
+    label = CONFIG.DND5E.senses[key]?.label;
   }
 
   // Resources

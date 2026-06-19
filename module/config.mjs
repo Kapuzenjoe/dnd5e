@@ -1398,18 +1398,6 @@ preLocalize("itemActionTypes");
 /* -------------------------------------------- */
 
 /**
- * Different ways in which item capacity can be limited.
- * @enum {string}
- */
-DND5E.itemCapacityTypes = {
-  items: "DND5E.ItemContainerCapacityItems",
-  weight: "DND5E.ItemContainerCapacityWeight"
-};
-preLocalize("itemCapacityTypes", { sort: true });
-
-/* -------------------------------------------- */
-
-/**
  * List of various item rarities.
  * @enum {string}
  */
@@ -1599,43 +1587,48 @@ DND5E.shieldIds = {
 
 /**
  * Common armor class calculations.
- * @enum {{ label: string, [formula]: string }}
+ * @enum {{ label: string, [formula]: string, [armored]: boolean, [shielded]: boolean }}
  */
 DND5E.armorClasses = {
-  flat: {
-    label: "DND5E.ArmorClassFlat",
-    formula: "@attributes.ac.flat"
-  },
   natural: {
-    label: "DND5E.ArmorClassNatural",
+    label: "DND5E.ARMORCLASS.Calculation.Natural",
     formula: "@attributes.ac.flat"
   },
-  default: {
-    label: "DND5E.ArmorClassEquipment",
-    formula: "@attributes.ac.armor + @attributes.ac.dex"
+  armored: {
+    label: "DND5E.ARMORCLASS.Calculation.Armored",
+    formula: "@attributes.ac.armor + @attributes.ac.clamped.dex",
+    armored: true
+  },
+  unarmored: {
+    label: "DND5E.ARMORCLASS.Calculation.Unarmored",
+    formula: "10 + @abilities.dex.mod",
+    armored: false
   },
   mage: {
-    label: "DND5E.ArmorClassMage",
-    formula: "13 + @abilities.dex.mod"
+    label: "DND5E.ARMORCLASS.Calculation.Mage",
+    formula: "13 + @abilities.dex.mod",
+    armored: false
   },
   draconic: {
-    label: "DND5E.ArmorClassDraconic",
-    formula: "13 + @abilities.dex.mod"
+    label: "DND5E.ARMORCLASS.Calculation.Draconic",
+    formula: "13 + @abilities.dex.mod",
+    armored: false
   },
   unarmoredMonk: {
-    label: "DND5E.ArmorClassUnarmoredMonk",
-    formula: "10 + @abilities.dex.mod + @abilities.wis.mod"
+    label: "DND5E.ARMORCLASS.Calculation.UnarmoredMonk",
+    formula: "10 + @abilities.dex.mod + @abilities.wis.mod",
+    armored: false,
+    shielded: false
   },
   unarmoredBarb: {
-    label: "DND5E.ArmorClassUnarmoredBarbarian",
-    formula: "10 + @abilities.dex.mod + @abilities.con.mod"
+    label: "DND5E.ARMORCLASS.Calculation.UnarmoredBarbarian",
+    formula: "10 + @abilities.dex.mod + @abilities.con.mod",
+    armored: false
   },
   unarmoredBard: {
-    label: "DND5E.ArmorClassUnarmoredBard",
-    formula: "10 + @abilities.dex.mod + @abilities.cha.mod"
-  },
-  custom: {
-    label: "DND5E.ArmorClassCustom"
+    label: "DND5E.ARMORCLASS.Calculation.UnarmoredBard",
+    formula: "10 + @abilities.dex.mod + @abilities.cha.mod",
+    armored: false
   }
 };
 preLocalize("armorClasses", { key: "label" });
@@ -2949,15 +2942,31 @@ preLocalize("restTypes", { key: "label" });
 
 /**
  * The set of possible sensory perception types which an Actor may have.
- * @enum {string}
+ * @enum {SenseConfiguration}
  */
 DND5E.senses = {
-  blindsight: "DND5E.SenseBlindsight",
-  darkvision: "DND5E.SenseDarkvision",
-  tremorsense: "DND5E.SenseTremorsense",
-  truesight: "DND5E.SenseTruesight"
+  blindsight: {
+    label: "DND5E.SenseBlindsight",
+    detectionMode: "blindsight"
+  },
+  darkvision: {
+    label: "DND5E.SenseDarkvision",
+    grantsSight: true,
+    visionMode: "darkvision"
+  },
+  tremorsense: {
+    label: "DND5E.SenseTremorsense",
+    detectionMode: "feelTremor"
+  },
+  truesight: {
+    label: "DND5E.SenseTruesight",
+    detectionMode: "seeAll",
+    grantsSight: true,
+    visionMode: "darkvision"
+  }
 };
-preLocalize("senses", { sort: true });
+preLocalize("senses", { key: "label", sort: true });
+patchConfig("senses", "label", { since: "DnD5e 6.0", until: "DnD5e 6.2" });
 
 /* -------------------------------------------- */
 /*  Attacks                                     */
@@ -4424,6 +4433,10 @@ DND5E.advancementTypes = {
     documentClass: advancement.ItemGrantAdvancement,
     validItemTypes: new Set(_ALL_ITEM_TYPES)
   },
+  ModifyItem: {
+    documentClass: advancement.ModifyItemAdvancement,
+    validItemTypes: new Set(_ALL_ITEM_TYPES)
+  },
   ScaleValue: {
     documentClass: advancement.ScaleValueAdvancement,
     validItemTypes: new Set(_ALL_ITEM_TYPES)
@@ -4838,18 +4851,23 @@ Object.defineProperty(DND5E, "enrichmentLookup", {
     if ( !_enrichmentLookup ) {
       _enrichmentLookup = {
         abilities: foundry.utils.deepClone(DND5E.abilities),
+        damageTypes: Object.fromEntries(
+          Object.keys({ ...DND5E.damageTypes, ...DND5E.healingTypes }).map(k => [slugify(k), k])
+        ),
         languages: _flattenConfig(DND5E.languages, { labelKey: "label", skipEntry: (k, d) => d.selectable === false }),
         skills: foundry.utils.deepClone(DND5E.skills),
         spellSchools: foundry.utils.deepClone(DND5E.spellSchools),
         tools: foundry.utils.deepClone(DND5E.tools)
       };
-      const addFullKeys = key => Object.entries(DND5E[key]).forEach(([k, v]) =>
-        _enrichmentLookup[key][slugify(v.fullKey)] = { ...v, key: k }
-      );
+      const addFullKeys = key => Object.entries(DND5E[key]).forEach(([k, v]) => {
+        _enrichmentLookup[key][k].key = k;
+        if ( v.fullKey ) _enrichmentLookup[key][slugify(v.fullKey)] = { ...v, key: k };
+      });
       addFullKeys("abilities");
       addFullKeys("skills");
       addFullKeys("spellSchools");
-      Object.entries(DND5E.vehicleTypes).forEach(([k, label]) => _enrichmentLookup.tools[k] = { label });
+      addFullKeys("tools");
+      Object.entries(DND5E.vehicleTypes).forEach(([k, label]) => _enrichmentLookup.tools[k] = { label, key: k });
     }
     return _enrichmentLookup;
   },

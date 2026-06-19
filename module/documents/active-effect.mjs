@@ -41,27 +41,22 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
    * Additional key paths to properties added during base data preparation that should be treated as formula fields.
    * @type {Set<string>}
    */
-  static FORMULA_FIELDS = new Set([
-    "system.attributes.ac.bonus",
-    "system.attributes.ac.min",
-    "system.attributes.encumbrance.bonuses.encumbered",
-    "system.attributes.encumbrance.bonuses.heavilyEncumbered",
-    "system.attributes.encumbrance.bonuses.maximum",
-    "system.attributes.encumbrance.bonuses.overall",
-    "system.attributes.encumbrance.multipliers.encumbered",
-    "system.attributes.encumbrance.multipliers.heavilyEncumbered",
-    "system.attributes.encumbrance.multipliers.maximum",
-    "system.attributes.encumbrance.multipliers.overall",
-    "system.damage.bonus",
-    "save.dc.bonus"
-  ]);
+  static FORMULA_FIELDS = new class extends Set {
+    add(value) {
+      foundry.utils.logCompatibilityWarning(
+        "`ActiveEffect5e#FOMRULA_FIELDS` has been deprecated in favor of non-persisted fields.",
+        { since: "DnD5e 6.0", until: "DnD5e 6.2" }
+      );
+      super.add(value);
+    }
+  }();
 
   /* -------------------------------------------- */
 
   /**
    * Active effect fields that should be redirected to another field, optionally with a compatibility warning.
    * Optional warning object contains options passed to `foundry.utils.logCompatibilityWarning`.
-   * @type {Record<string, { key: string, [warning]: object }>}
+   * @type {Record<string, { key: string, [type]: string, [value]: Function, [warning]: object }>}
    */
   static SHIM_FIELDS = {
     "system.attributes.movement.speed": { key: "system.attributes.movement.walk" },
@@ -81,6 +76,16 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
   /* -------------------------------------------- */
 
   /**
+   * Document type to which this active effect should apply its changes.
+   * @type {string}
+   */
+  get applicableType() {
+    return this.system.applicableType ?? "Actor";
+  }
+
+  /* -------------------------------------------- */
+
+  /**
    * Another effect that granted this effect as a rider.
    * @type {ActiveEffect5e|null}
    */
@@ -96,7 +101,7 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
    * @type {boolean}
    */
   get isAppliedEnchantment() {
-    return (this.type === "enchantment") && !!this.origin && (this.origin !== this.parent.uuid);
+    return (this.type === "enchantment") && this.system.isApplied;
   }
 
   /* -------------------------------------------- */
@@ -106,6 +111,9 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
    * @type {boolean}
    */
   get isConcealed() {
+    if ( this.system.isConcealed ) return true;
+    if ( this.dependentOrigin?.active === false ) return true;
+    if ( (this.parent.system?.identified === false) && !game.user.isGM ) return true;
     if ( this.target?.testUserPermission(game.user, "OBSERVER") ) return false;
 
     // Hide bloodied status effect from players unless the token is friendly
@@ -121,6 +129,7 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
   /** @inheritDoc */
   get isSuppressed() {
     if ( super.isSuppressed ) return true;
+    if ( this.system.magical && this.parent.actor?.statuses.has("antimagic") ) return true;
     if ( this.type === "enchantment" ) return false;
     if ( this.parent instanceof dnd5e.documents.Item5e ) {
       if ( this.parent.areEffectsSuppressed ) return true;
@@ -179,6 +188,7 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
   /** @inheritDoc */
   static migrateData(source) {
     source = super.migrateData(source);
+
     for ( const change of source.changes ?? [] ) {
       if ( change.key === "flags.dnd5e.initiativeAdv" ) {
         change.key = "system.attributes.init.roll.mode";
@@ -186,6 +196,12 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
         change.value = 1;
       }
     }
+
+    if ( source.flags?.dnd5e?.riders?.statuses && !source.system?.rider?.statuses ) {
+      foundry.utils.setProperty(source, "system.rider.statuses", source.flags.dnd5e.riders.statuses);
+      delete source.flags.dnd5e.riders.statuses;
+    }
+
     return source;
   }
 
@@ -196,13 +212,32 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
   /** @inheritDoc */
   static applyChange(model, change, options={}) {
     change = change.effect._applyChangeShim(change);
+
+    // Handle special actor flags
     if ( change.key.startsWith("flags.dnd5e.") ) change = change.effect._prepareFlagChange(model, change);
+
+    // Properly handle formulas that don't exist as part of the data model
     if ( ActiveEffect5e.FORMULA_FIELDS.has(change.key) ) {
       const field = new FormulaField({ deterministic: change.key !== "system.damage.bonus" });
       return { [change.key]: this.applyChangeField(model, change, { field }) };
     }
+
+    // Handle activity-targeted changes
     if ( (change.key.startsWith("activities[") || change.key.startsWith("system.activities."))
       && (model instanceof Item) ) return change.effect.applyActivity(model, change);
+
+    // Handle hiding items
+    if ( (change.key === "items.hidden") && (model instanceof Actor) ) {
+      if ( change.type === "add" ) {
+        if ( model.items.has(change.value) ) model.hiddenItems.add(change.value);
+        else model.identifiedItems.get(change.value)?.forEach(i => model.hiddenItems.add(i.id));
+      } else if ( change.type === "subtract" ) {
+        if ( model.items.has(change.value) ) model.hiddenItems.delete(change.value);
+        else model.identifiedItems.get(change.value)?.forEach(i => model.hiddenItems.delete(i.id));
+      }
+      return;
+    }
+
     return super.applyChange(model, change, options);
   }
 
@@ -313,7 +348,7 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
       `The active effect key "${change.key}" has been deprecated and should be changed to "${shim.key}".`,
       shim.warning
     );
-    return { ...change, key: shim.key };
+    return { ...change, key: shim.key, type: shim.type ?? change.type };
   }
 
   /* -------------------------------------------- */
@@ -386,7 +421,6 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
   prepareDerivedData() {
     super.prepareDerivedData();
     if ( this.id === this.constructor.ID.EXHAUSTION ) this._prepareExhaustionLevel();
-    if ( this.isAppliedEnchantment && this.uuid ) dnd5e.registry.enchantments.track(this.origin, this.uuid);
   }
 
   /* -------------------------------------------- */
@@ -430,11 +464,7 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
    * @returns {Promise<ActiveEffect5e[]>}      Created rider effects.
    */
   async createRiderConditions() {
-    const riders = new Set();
-
-    for ( const status of this.getFlag("dnd5e", "riders.statuses") ?? [] ) {
-      riders.add(status);
-    }
+    const riders = new Set(this.system.rider?.statuses ?? []);
 
     for ( const status of this.statuses ) {
       const r = CONFIG.statusEffects.find(e => e.id === status)?.riders ?? [];
@@ -467,7 +497,7 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
     const { enchantmentProfile, activityId } = options.dnd5e ?? {};
 
     if ( chatMessageOrigin ) {
-      const message = game.messages.get(options?.chatMessageOrigin);
+      const message = game.messages.get(chatMessageOrigin);
       item = message?.getAssociatedItem();
       const activity = message?.getAssociatedActivity();
       profile = activity?.effects.find(e => e._id === message?.getFlag("dnd5e", "use.enchantmentProfile"));
@@ -496,10 +526,9 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
       foundry.utils.setProperty(activityData, "flags.dnd5e.dependentOn", this.id);
       riderActivities[activityData._id] = activityData;
     }
-    let createdActivities = [];
     if ( !foundry.utils.isEmpty(riderActivities) ) {
       await this.parent.update({ "system.activities": riderActivities });
-      createdActivities = Object.keys(riderActivities).map(id => this.parent.system.activities?.get(id));
+      const createdActivities = Object.keys(riderActivities).map(id => this.parent.system.activities?.get(id));
       createdActivities.forEach(a => a.effects?.forEach(e => {
         if ( !this.parent.effects.has(e._id) ) riderEffects.push(item.effects.get(e._id)?.toObject());
       }));
@@ -555,22 +584,6 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
   async _preCreate(data, options, user) {
     if ( await super._preCreate(data, options, user) === false ) return false;
     if ( options.keepOrigin === false ) this.updateSource({ origin: this.parent.uuid });
-
-    // Enchantments cannot be added directly to actors
-    if ( (this.type === "enchantment") && (this.parent instanceof Actor) ) {
-      ui.notifications.error("DND5E.ENCHANTMENT.Warning.NotOnActor");
-      return false;
-    }
-
-    if ( this.isAppliedEnchantment ) {
-      const origin = await fromUuid(this.origin);
-      const errors = origin?.canEnchant?.(this.parent);
-      if ( errors?.length ) {
-        errors.forEach(err => console.error(err));
-        return false;
-      }
-      this.updateSource({ disabled: false });
-    }
   }
 
   /* -------------------------------------------- */
@@ -581,10 +594,6 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
     if ( userId === game.userId ) {
       if ( this.active && (this.parent instanceof Actor) ) await this.createRiderConditions();
       if ( this.isAppliedEnchantment ) await this.createRiderEnchantments(options);
-    }
-    if ( options.chatMessageOrigin ) {
-      document.body.querySelectorAll(`[data-message-id="${options.chatMessageOrigin}"] enchantment-application`)
-        .forEach(element => element.buildItemList());
     }
   }
 
@@ -656,9 +665,6 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
   _onDelete(options, userId) {
     super._onDelete(options, userId);
     if ( game.user === game.users.activeGM ) this.getDependents().forEach(e => e.delete());
-    if ( this.isAppliedEnchantment ) dnd5e.registry.enchantments.untrack(this.origin, this.uuid);
-    document.body.querySelectorAll(`enchantment-application:has([data-enchantment-uuid="${this.uuid}"]`)
-      .forEach(element => element.buildItemList());
   }
 
   /* -------------------------------------------- */
@@ -746,16 +752,25 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
    * @param {ApplicationRenderContext} context The app's rendering context.
    */
   static onRenderActiveEffectConfig(app, html, context) {
-    const element = new foundry.data.fields.SetField(new foundry.data.fields.StringField(), {}).toFormGroup({
-      label: _loc("DND5E.CONDITIONS.RiderConditions.label"),
-      hint: _loc("DND5E.CONDITIONS.RiderConditions.hint")
-    }, {
-      name: "flags.dnd5e.riders.statuses",
-      value: app.document.getFlag("dnd5e", "riders.statuses") ?? [],
+    if ( app.document.system.onRenderActiveEffectConfig?.(app, html, context) === false ) return;
+    const fields = app.document.system.schema.fields;
+    const magicalField = fields.magical?.toFormGroup({}, {
+      value: app.document.system._source.magical,
+      disabled: !context.editable
+    });
+    const statusesField = fields.rider?.fields?.statuses?.toFormGroup({}, {
+      value: app.document.system._source.rider?.statuses ?? [],
       options: CONFIG.statusEffects.map(se => ({ value: se.id, label: se.name })),
       disabled: !context.editable
     });
-    html.querySelector("[data-tab=details] > .form-group:has([name=statuses])")?.after(element);
+    const detailsTab = html.querySelector("[data-application-part=details]");
+    const statuses = detailsTab.querySelector("& > .form-group:has([name=statuses])");
+    if ( statuses ) {
+      if ( magicalField ) statuses?.before(magicalField);
+      if ( statusesField ) statuses?.after(statusesField);
+    } else {
+      detailsTab.append(...[magicalField, statusesField].filter(_ => _));
+    }
 
     // Add tooltip with link to wiki for effects/enchantments
     const helpIconElement = document.createElement("i");
@@ -975,6 +990,7 @@ export default class ActiveEffect5e extends DependentDocumentMixin(ActiveEffect)
     else if ( this.isTemporary ) properties.push("DND5E.EffectType.Temporary");
     else properties.push("DND5E.EffectType.Passive");
     if ( this.type === "enchantment" ) properties.push("DND5E.ENCHANTMENT.Label");
+    if ( this.system.magical ) properties.push("DND5E.ITEM.Property.Magical");
     properties = properties.map(p => _loc(p));
     properties.unshift(...this.statuses.map(id => CONFIG.statusEffects[id]?.name).filter(_ => _));
 

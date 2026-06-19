@@ -2,6 +2,8 @@ import { ConsumptionTargetData } from "../../data/activity/fields/consumption-ta
 import UsesField from "../../data/shared/uses-field.mjs";
 import PseudoDocumentSheet from "../api/pseudo-document-sheet.mjs";
 
+const TextEditor = foundry.applications.ux.TextEditor.implementation;
+
 /**
  * Default sheet for activities.
  */
@@ -208,7 +210,6 @@ export default class ActivitySheet extends PseudoDocumentSheet {
     context.showScaling = !this.activity.isSpell || this.activity.isRider;
 
     // Uses recovery
-    context.recoveryPeriods = CONFIG.DND5E.limitedUsePeriods.recoveryOptions;
     context.recoveryTypes = [
       { value: "recoverAll", label: _loc("DND5E.USES.Recovery.Type.RecoverAll") },
       { value: "loseAll", label: _loc("DND5E.USES.Recovery.Type.LoseAll") },
@@ -219,7 +220,8 @@ export default class ActivitySheet extends PseudoDocumentSheet {
       fields: this.activity.schema.fields.uses.fields.recovery.element.fields,
       prefix: `uses.recovery.${index}.`,
       source: context.source.uses.recovery[index] ?? data,
-      formulaOptions: data.period === "recharge" ? UsesField.rechargeOptions : null
+      formulaOptions: data.period === "recharge" ? UsesField.rechargeOptions : null,
+      periodOptions: UsesField.recoveryOptions(this.item, data.period)
     }));
 
     // Template dimensions
@@ -341,6 +343,9 @@ export default class ActivitySheet extends PseudoDocumentSheet {
       field: context.fields.target.fields.prompt,
       value: context.source.target.prompt,
       input: context.inputs.createCheckboxInput
+    });
+    context.enriched = await TextEditor.enrichHTML(this.activity.description.value, {
+      relativeTo: this.activity.item, rollData: this.activity.getRollData(), secrets: this.activity.item.isOwner
     });
     context.placeholder = {
       name: _loc(this.activity.metadata.title),
@@ -519,9 +524,10 @@ export default class ActivitySheet extends PseudoDocumentSheet {
    * @protected
    */
   _addEffectData() {
+    const { name, img } = this.activity._source;
     return {
-      name: this.item.name,
-      img: this.item.img,
+      name: name || this.item.name,
+      img: img || this.item.img,
       origin: this.item.uuid,
       transfer: false
     };
