@@ -8,6 +8,7 @@ import { CalendarGreyhawk, CALENDAR_OF_GREYHAWK } from "./data/calendar/calendar
 import { CalendarHarptos, CALENDAR_OF_HARPTOS } from "./data/calendar/calendar-of-harptos.mjs";
 import { CalendarKhorvaire, CALENDAR_OF_KHORVAIRE } from "./data/calendar/calendar-of-khorvaire.mjs";
 import MappingField from "./data/fields/mapping-field.mjs";
+import * as regionBehaviors from "./data/region-behavior/_module.mjs";
 import * as activities from "./documents/activity/_module.mjs";
 import Actor5e from "./documents/actor/actor.mjs";
 import * as advancement from "./documents/advancement/_module.mjs";
@@ -1092,6 +1093,26 @@ DND5E.activityActivationTypes = {
   }
 };
 preLocalize("activityActivationTypes", { key: "label" });
+
+/* -------------------------------------------- */
+
+/**
+ * Types of behaviors that can be attached to regions through activities.
+ * @enum {ActivityBehaviorConfiguration}
+ */
+DND5E.activityBehaviorTypes = {
+  applyActiveEffect: {
+    label: "TYPES.RegionBehavior.applyActiveEffect",
+    icon: "systems/dnd5e/icons/svg/behaviors/apply-active-effect.svg",
+    model: regionBehaviors.ApplyActiveEffectActivityBehavior
+  },
+  difficultTerrain: {
+    label: "TYPES.RegionBehavior.dnd5e.difficultTerrain",
+    icon: "systems/dnd5e/icons/svg/behaviors/difficult-terrain.svg",
+    model: regionBehaviors.DifficultTerrainActivityBehavior
+  }
+};
+preLocalize("activityBehaviorTypes", { key: "label" });
 
 /* -------------------------------------------- */
 
@@ -2838,8 +2859,14 @@ DND5E.areaTargetTypes = {
   radius: {
     label: "DND5E.TARGET.Type.Emanation.Label",
     counted: "DND5E.TARGET.Type.Emanation.Counted",
-    template: "circle",
+    template: "emanation",
     standard: true
+  },
+  ring: {
+    label: "DND5E.TARGET.Type.Ring.Label",
+    counted: "DND5E.TARGET.Type.Ring.Counted",
+    template: "ring",
+    sizes: ["radius", "thickness", "height"]
   },
   sphere: {
     label: "DND5E.TARGET.Type.Sphere.Label",
@@ -4566,6 +4593,20 @@ DND5E.calendar = {
 };
 preLocalize("calendar.calendars", { keys: ["label", "group"] });
 preLocalize("calendar.formatters", { keys: ["label", "group"] });
+
+/* -------------------------------------------- */
+
+/**
+ * Mapping of time deltas created by time passing in the calendar system to limited use recovery periods.
+ * Note: Ordering is important in this entry because it determines the order in which these recovery periods
+ * will be selected if multiple applicable periods are found during the recovery process.
+ * @type {Map<string, string>}
+ */
+DND5E.calendarDeltasRecoveryMapping = new Map([
+  ["midnights", "day"],
+  ["sunrises", "dawn"],
+  ["sunsets", "dusk"]
+]);
 
 /* -------------------------------------------- */
 /*  Requests                                    */

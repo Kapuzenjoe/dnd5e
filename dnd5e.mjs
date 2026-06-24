@@ -520,6 +520,7 @@ Hooks.once("i18nInit", () => {
   }
   utils.performPreLocalization(CONFIG.DND5E);
   Object.values(CONFIG.DND5E.activityTypes).forEach(c => c.documentClass.localize());
+  Object.values(CONFIG.DND5E.activityBehaviorTypes).forEach(c => c.model.localize());
   Object.values(CONFIG.DND5E.advancementTypes).forEach(c => c.documentClass.localize());
   foundry.helpers.Localization.localizeDataModel(dataModels.settings.CalendarConfigSetting);
   foundry.helpers.Localization.localizeDataModel(dataModels.settings.CalendarPreferencesSetting);
@@ -537,13 +538,14 @@ Hooks.once("i18nInit", () => {
  * Once the entire VTT framework is initialized, check to see if we should perform a data migration
  */
 Hooks.once("ready", function() {
-  // Wait to register hotbar drop hook on ready so that modules could register earlier if they want to
+  // Wait to register certain hooks so that modules can register earlier if they want to
   Hooks.on("hotbarDrop", (bar, data, slot) => {
     if ( ["ActiveEffect", "Activity", "Item"].includes(data.type) ) {
       documents.macro.create5eMacro(data, slot);
       return false;
     }
   });
+  Hooks.on("updateWorldTime", dataModels.calendar.CalendarData5e.onTimePassage);
 
   // Adjust sourced items on actors now that compendium UUID redirects have been initialized
   game.actors.forEach(a => a.sourcedItems._redirectKeys());
@@ -621,6 +623,8 @@ Hooks.on("renderChatPopout", (app, html, data) => documents.Item5e.chatListeners
 Hooks.on("chatMessage", (app, message, data) => enrichers.chatMessage(message));
 Hooks.on("createChatMessage", dataModels.chatMessage.RequestMessageData.onCreateMessage);
 Hooks.on("updateChatMessage", dataModels.chatMessage.RequestMessageData.onUpdateResultMessage);
+
+Hooks.on("createRegion", documents.activity.UtilityActivity.placeTemplateBehaviors);
 
 Hooks.on("renderActorDirectory", (app, html, data) => documents.Actor5e.onRenderActorDirectory(html));
 

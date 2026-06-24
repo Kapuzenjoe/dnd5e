@@ -28,6 +28,7 @@
 "TYPES.ChatMessage": {
   "request": "Request Message",
   "rest": "Rest Message",
+  "timePassed": "Time Passed Message",
   "turn": "Combat Turn Message",
   "usage": "Usage Message"
 },
@@ -291,6 +292,24 @@
     "other": "Activities"
   },
   "FIELDS": {
+    "behaviors": {
+      "element": {
+        "level": {
+          "label": "Level Limit",
+          "hint": "Range of levels required to apply this behavior.",
+          "max": {
+            "label": "Maximum Level"
+          },
+          "min": {
+            "label": "Minimum Level"
+          }
+        },
+        "name": {
+          "label": "Name"
+        }
+      },
+      "label": "Area of Effect Behaviors"
+    },
     "description": {
       "label": "Description",
       "chatFlavor": {
@@ -1121,7 +1140,8 @@
 
 "DND5E.Bastion": {
   "Action": {
-    "BastionTurn": "Advance Bastion Turn"
+    "Advance": "Advance Bastion Turn",
+    "Maintain": "Maintain Bastion"
   },
   "Attack": {
     "Automatic": "Resolve Automatically",
@@ -1148,7 +1168,10 @@
     "Label": "Configure Bastions",
     "Hint": "Various configuration options for the Bastion system as presented in the DMG 2024."
   },
-  "Confirm": "Advance one bastion turn?",
+  "Confirm": {
+    "Advance": "This will advance all bastion facility order progress by {duration}, issue the maintain order to all idle facilities, and repair any disabled facilities, would you like to continue?",
+    "Maintain": "This will issue the maintain order to all idle bastion facilities and repair any disabled facilities, would you like to continue?"
+  },
   "Duration": {
     "Label": "Bastion Turn Duration (days)"
   },
@@ -1172,6 +1195,15 @@
     "Invalid": "Removing a pending trade will invalidate your trade order.",
     "Pending": "Pending trade"
   }
+},
+
+"DND5E.BEHAVIOR": {
+  "Action": {
+    "Create": "Create Behavior",
+    "Delete": "Delete Behavior"
+  },
+  "Hint": "These behaviors will apply to any area of effect placed by this activity.",
+  "Label": "Behavior"
 },
 
 "DND5E.Biography": "Biography",
@@ -1278,6 +1310,13 @@
     "enabled": {
       "hint": "Allow the calendar UI to be viewed & customized by all users.",
       "label": "Enabled"
+    },
+    "dailyRecovery": {
+      "calendar": "Calendar Recovery (via time passing)",
+      "default": "Default (tied to calendar enabled setting)",
+      "hint": "Control whether limited uses with day, dawn, and dusk recovery are recovered based on the world calendar or through the rest dialog.",
+      "label": "Daily Recovery Mode",
+      "manual": "Manual Recovery (via rest dialog)"
     },
     "formatters": {
       "date": {
@@ -1468,6 +1507,17 @@
       "Autumn": "Autumn",
       "Winter": "Winter"
     }
+  },
+  "TimePassage": {
+    "Midnight": "A new day has begun.",
+    "Sunrise": "The sun has risen.",
+    "Sunset": "The sun has set.",
+    "SunsetSunrise": "The sun has set and the dawn of a new day has come.",
+    "TimePassed": {
+      "one": "{number} has passed.",
+      "other": "{number} have passed."
+    },
+    "Title": "Passage of Time"
   }
 },
 
@@ -2398,7 +2448,7 @@
       }
     }
   },
-  "Empty": "No associated effects. Use the <i class=\"fas fa-plus\"></i> button above to create one, or select an existing effect from the drop-down.",
+  "Empty": "No associated effects. Use the <i class=\"fas fa-plus\"></i> button above to create one, select an existing effect from the drop-down, or drop one from a compendium.",
   "Label": "Available Effects",
   "RIDER": {
     "Activity": "Enchantment Rider Activity",
@@ -2483,7 +2533,8 @@
   "Enchantment": {
     "Action": {
       "Create": "Create Enchantment",
-      "Delete": "Delete Enchantment"
+      "Delete": "Delete Enchantment",
+      "Dissociate": "Dissociate Enchantment"
     },
     "Active": "{name} (active)",
     "Empty": "No associated enchantments. Use the <i class=\"fas fa-plus\"></i> button above to create one, or select an existing enchantment from the drop-down."
@@ -4621,6 +4672,7 @@
   "Warning": {
     "NoOwnership": "You must have ownership of '{actor}' in order to summon it.",
     "NoProfile": "Cannot find summoning profile {profileId} on '{item}'.",
+    "PlaceTokens": "Error placing summons in scene.",
     "Wildcard": "You must have 'Use File Browser' permissions to summon creatures with wildcard artwork."
   }
 },
@@ -4864,6 +4916,15 @@
         "other": "{number} radii",
         "oneSized": "{sizes} Radius",
         "otherSized": "{number} {sizes} Radii"
+      }
+    },
+    "Ring": {
+      "Label": "Ring",
+      "Counted": {
+        "one": "{number} ring",
+        "other": "{number} rings",
+        "oneSized": "{sizes} Ring",
+        "otherSized": "{number} {sizes} Rings"
       }
     },
     "Self": {
